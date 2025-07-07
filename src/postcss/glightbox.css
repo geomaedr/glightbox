@@ -478,8 +478,9 @@
     }
 }
 
-.gbtn.focused {
+.gbtn:focus {
     outline: 2px solid #0f3d81;
+    outline-offset: 2px;
 }
 
 iframe.wait-autoplay {

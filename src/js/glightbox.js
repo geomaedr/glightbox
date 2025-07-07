@@ -8,6 +8,7 @@
 import keyboardNavigation from './core/keyboard-navigation.js';
 import Slide from './core/slide.js';
 import touchNavigation from './core/touch-navigation.js';
+import FocusTrap from './utils/focus-trap.js';
 import * as _ from './utils/helpers.js';
 
 const version = '3.3.1';
@@ -116,9 +117,9 @@ defaults.lightboxHTML = `<div id="glightbox-body" class="glightbox-container" ta
     <div class="goverlay"></div>
     <div class="gcontainer">
     <div id="glightbox-slider" class="gslider"></div>
-    <button class="gclose gbtn" aria-label="Close" data-taborder="3">{closeSVG}</button>
-    <button class="gprev gbtn" aria-label="Previous" data-taborder="2">{prevSVG}</button>
-    <button class="gnext gbtn" aria-label="Next" data-taborder="1">{nextSVG}</button>
+    <button class="gclose gbtn" aria-label="Close" tabindex="0">{closeSVG}</button>
+    <button class="gprev gbtn" aria-label="Previous" tabindex="0">{prevSVG}</button>
+    <button class="gnext gbtn" aria-label="Next" tabindex="0">{nextSVG}</button>
 </div>
 </div>`;
 
@@ -134,6 +135,8 @@ class GlightboxInit {
         this.videoPlayers = {};
         this.apiEvents = [];
         this.fullElementsList = false;
+        this.focusTrap = null;
+        this.triggerElement = null;
     }
 
     init() {
@@ -160,6 +163,10 @@ class GlightboxInit {
         this.activeSlide = null;
         this.prevActiveSlideIndex = null;
         this.prevActiveSlide = null;
+        
+        // Store the trigger element for focus restoration
+        this.triggerElement = element;
+        
         let index = _.isNumber(startAt) ? startAt : this.settings.startAt;
 
         if (_.isNode(element)) {
@@ -226,6 +233,14 @@ class GlightboxInit {
         }
         if (this.settings.keyboardNavigation) {
             keyboardNavigation(this);
+        }
+        
+        // Activate focus trap after modal is fully built
+        if (this.modal && !this.focusTrap) {
+            this.focusTrap = new FocusTrap(this.modal);
+        }
+        if (this.focusTrap) {
+            this.focusTrap.activate(this.triggerElement);
         }
     }
 
@@ -1216,6 +1231,11 @@ class GlightboxInit {
         }
         this.closing = true;
         this.slidePlayerPause(this.activeSlide);
+        
+        // Deactivate focus trap before closing
+        if (this.focusTrap) {
+            this.focusTrap.deactivate();
+        }
 
         if (this.fullElementsList) {
             this.elements = this.fullElementsList;
@@ -1262,6 +1282,8 @@ class GlightboxInit {
             }
             this.lightboxOpen = false;
             this.closing = null;
+            this.focusTrap = null;
+            this.triggerElement = null;
         });
     }
 

@@ -1,42 +1,11 @@
 /**
  * Keyboard Navigation
- * Allow navigation using the keyboard
+ * Allow navigation using the keyboard with standard HTML accessibility
  *
  * @param {object} instance
  */
 
-import { addEvent, addClass, removeClass, each } from '../utils/helpers.js';
-
-function getNextFocusElement(current = -1) {
-    const btns = document.querySelectorAll('.gbtn[data-taborder]:not(.disabled)');
-    if (!btns.length) {
-        return false;
-    }
-
-    if (btns.length == 1) {
-        return btns[0];
-    }
-
-    if (typeof current == 'string') {
-        current = parseInt(current);
-    }
-
-    const orders = [];
-    each(btns, (btn) => {
-        orders.push(btn.getAttribute('data-taborder'));
-    });
-    const highestOrder = Math.max.apply(Math, orders.map((order) => parseInt(order)));
-
-    let newIndex = current < 0 ? 1 : current + 1;
-    if (newIndex > highestOrder) {
-        newIndex = '1';
-    }
-
-    const nextOrders = orders.filter((el) => el >= parseInt(newIndex));
-    const nextFocus = nextOrders.sort()[0];
-
-    return document.querySelector(`.gbtn[data-taborder="${nextFocus}"]`);
-}
+import { addEvent } from '../utils/helpers.js';
 
 export default function keyboardNavigation(instance) {
     if (instance.events.hasOwnProperty('keyboard')) {
@@ -48,50 +17,33 @@ export default function keyboardNavigation(instance) {
         withCallback: (event, target) => {
             event = event || window.event;
             const key = event.keyCode;
-            if (key == 9) {
-                //prettier-ignore
-                const focusedButton = document.querySelector('.gbtn.focused');
-
-                if (!focusedButton) {
-                    const activeElement = document.activeElement && document.activeElement.nodeName ? document.activeElement.nodeName.toLocaleLowerCase() : false;
-                    if (activeElement == 'input' || activeElement == 'textarea' || activeElement == 'button') {
-                        return;
-                    }
-                }
-
-                event.preventDefault();
-                const btns = document.querySelectorAll('.gbtn[data-taborder]');
-                if (!btns || btns.length <= 0) {
-                    return;
-                }
-
-                if (!focusedButton) {
-                    const first = getNextFocusElement();
-                    if (first) {
-                        first.focus();
-                        addClass(first, 'focused');
-                    }
-                    return;
-                }
-
-                let currentFocusOrder = focusedButton.getAttribute('data-taborder');
-                let nextFocus = getNextFocusElement(currentFocusOrder);
-
-                removeClass(focusedButton, 'focused');
-
-                if (nextFocus) {
-                    nextFocus.focus();
-                    addClass(nextFocus, 'focused');
-                }
+            
+            // Only handle keyboard events if the lightbox is open
+            if (!instance.lightboxOpen) {
+                return;
             }
-            if (key == 39) {
+            
+            // Don't interfere with focus trap's Tab handling
+            // The focus trap utility handles Tab key navigation
+            
+            // Arrow key navigation for slides
+            if (key == 39) { // Right arrow
                 instance.nextSlide();
             }
-            if (key == 37) {
+            if (key == 37) { // Left arrow  
                 instance.prevSlide();
             }
-            if (key == 27) {
+            if (key == 27) { // Escape
                 instance.close();
+            }
+            
+            // Space or Enter to activate focused button
+            if (key == 32 || key == 13) { // Space or Enter
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement.classList.contains('gbtn')) {
+                    event.preventDefault();
+                    activeElement.click();
+                }
             }
         }
     });
